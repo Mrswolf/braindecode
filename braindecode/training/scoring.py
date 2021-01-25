@@ -133,7 +133,6 @@ class CroppedTrialEpochScoring(EpochScoring):
         if not self.on_train:
             self.window_inds_ = []
 
-
     def _initialize_cache(self):
         super()._initialize_cache()
         self.crops_to_trials_computed = False
@@ -146,9 +145,12 @@ class CroppedTrialEpochScoring(EpochScoring):
         assert self.use_caching == True
         if not self.crops_to_trials_computed:
             if self.on_train:
+                # Prevent that rng state of torch is changed by
+                # creation+usage of iterator
+                rng_state = torch.random.get_rng_state()
                 pred_results = net.predict_with_window_inds_and_ys(
                     dataset_train)
-
+                torch.random.set_rng_state(rng_state)
             else:
                 pred_results = {}
                 pred_results['i_window_in_trials'] = np.concatenate(
@@ -162,7 +164,6 @@ class CroppedTrialEpochScoring(EpochScoring):
                 pred_results['window_ys'] = np.concatenate(
                     [y.cpu().numpy() for y in self.y_trues_])
 
-
             # A new trial starts
             # when the index of the window in trials
             # does not increment by 1
@@ -175,14 +176,12 @@ class CroppedTrialEpochScoring(EpochScoring):
                 pred_results['i_window_in_trials'],
                 pred_results['i_window_stops'])
             # trial preds is a list
-            # each item is an 2darray classes x time
-            y_preds_per_trial = np.array(
-                [np.mean(p, axis=1) for p in trial_preds]
-            )
+            # each item is an 2d array classes x time
+            y_preds_per_trial = np.array(trial_preds)
             # Move into format expected by skorch (list of torch tensors)
             y_preds_per_trial = [torch.tensor(y_preds_per_trial)]
 
-            # Store the computed trial labels/preds for all Cropped Callbacks
+            # Store the computed trial preds for all Cropped Callbacks
             # that are also on same set
             cbs = net._default_callbacks + net.callbacks
             epoch_cbs = [
@@ -250,6 +249,12 @@ class PostEpochTrainScoring(EpochScoring):
     def on_epoch_end(self, net, dataset_train, dataset_valid, **kwargs):
         if len(self.y_preds_) == 0:
             dataset = net.get_dataset(dataset_train)
+            # Prevent that rng state of torch is changed by
+            # creation+usage of iterator
+            # Unfortunatenly calling __iter__() of a pytorch
+            # DataLoader will change the random state
+            # Note line below setting rng state back
+            rng_state = torch.random.get_rng_state()
             iterator = net.get_iterator(dataset, training=False)
             y_preds = []
             y_test = []
@@ -260,6 +265,7 @@ class PostEpochTrainScoring(EpochScoring):
                 y_test.append(self.target_extractor(batch_y))
                 y_preds.append(yp)
             y_test = np.concatenate(y_test)
+            torch.random.set_rng_state(rng_state)
 
             # Adding the recomputed preds to all other
             # instances of PostEpochTrainScoring of this
@@ -273,8 +279,9 @@ class PostEpochTrainScoring(EpochScoring):
             for cb in epoch_cbs:
                 cb.y_preds_ = y_preds
                 cb.y_trues_ = y_test
-
         # y pred should be same as self.y_preds_
+        # Unclear if this also leads to any
+        # random generator call?
         with _cache_net_forward_iter(
             net, use_caching=True, y_preds=self.y_preds_
         ) as cached_net:
