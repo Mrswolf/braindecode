@@ -12,12 +12,12 @@ from torch import optim
 from torch.nn.functional import nll_loss
 
 from braindecode.classifier import EEGClassifier
-from braindecode.datautil.xy import create_from_X_y
+from braindecode.datasets.xy import create_from_X_y
 from braindecode.training.losses import CroppedLoss
 from braindecode.models import ShallowFBCSPNet
 from braindecode.models.util import to_dense_prediction_model
 from braindecode.training.scoring import CroppedTrialEpochScoring
-from braindecode.util import set_random_seeds, np_to_var
+from braindecode.util import set_random_seeds, np_to_th
 
 
 def assert_deep_allclose(expected, actual, *args, **kwargs):
@@ -31,7 +31,7 @@ def assert_deep_allclose(expected, actual, *args, **kwargs):
     intact to assertAlmostEqual() (that's how you specify comparison
     precision).
     """
-    is_root = not "__trace" in kwargs
+    is_root = "__trace" not in kwargs
     trace = kwargs.pop("__trace", "ROOT")
     try:
         if isinstance(expected, (int, float, complex)):
@@ -140,7 +140,7 @@ def test_eeg_classifier():
         model.cuda()
 
     # determine output size
-    test_input = np_to_var(
+    test_input = np_to_th(
         np.ones((2, in_chans, input_window_samples, 1), dtype=np.float32)
     )
     if cuda:
@@ -150,11 +150,13 @@ def test_eeg_classifier():
 
     train_set = create_from_X_y(X[:48], y[:48],
                                 drop_last_window=False,
+                                sfreq=100,
                                 window_size_samples=input_window_samples,
                                 window_stride_samples=n_preds_per_input)
 
     valid_set = create_from_X_y(X[48:60], y[48:60],
                                 drop_last_window=False,
+                                sfreq=100,
                                 window_size_samples=input_window_samples,
                                 window_stride_samples=n_preds_per_input)
 

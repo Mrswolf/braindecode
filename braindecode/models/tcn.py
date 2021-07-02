@@ -12,8 +12,12 @@ from .functions import squeeze_final_output
 
 
 class TCN(nn.Module):
-    """Temporal Convolutional Network (TCN) as described in [1]_.
+    """Temporal Convolutional Network (TCN) from Bai et al 2018.
+
+    See [Bai2018]_ for details.
+
     Code adapted from https://github.com/locuslab/TCN/blob/master/TCN/tcn.py
+
     Parameters
     ----------
     n_in_chans: int
@@ -31,9 +35,10 @@ class TCN(nn.Module):
         dropout probability
     add_log_softmax: bool
         whether to add a log softmax layer
+
     References
     ----------
-    .. [1] Bai, S., Kolter, J. Z., & Koltun, V. (2018).
+    .. [Bai2018] Bai, S., Kolter, J. Z., & Koltun, V. (2018).
        An empirical evaluation of generic convolutional and recurrent networks
        for sequence modeling.
        arXiv preprint arXiv:1803.01271.
@@ -47,14 +52,14 @@ class TCN(nn.Module):
             n_inputs = n_in_chans if i == 0 else n_filters
             dilation_size = 2 ** i
             t_blocks.add_module("temporal_block_{:d}".format(i), TemporalBlock(
-                    n_inputs=n_inputs,
-                    n_outputs=n_filters,
-                    kernel_size=kernel_size,
-                    stride=1,
-                    dilation=dilation_size,
-                    padding=(kernel_size - 1) * dilation_size,
-                    drop_prob=drop_prob
-                ))
+                n_inputs=n_inputs,
+                n_outputs=n_filters,
+                kernel_size=kernel_size,
+                stride=1,
+                dilation=dilation_size,
+                padding=(kernel_size - 1) * dilation_size,
+                drop_prob=drop_prob
+            ))
         self.temporal_blocks = t_blocks
         self.fc = nn.Linear(in_features=n_filters, out_features=n_outputs)
         if add_log_softmax:
@@ -70,6 +75,13 @@ class TCN(nn.Module):
         self.eval()
 
     def forward(self, x):
+        """Forward pass.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Batch of EEG windows of shape (batch_size, n_channels, n_times).
+        """
         x = self.ensuredims(x)
         # x is in format: B x C x T x 1
         (batch_size, _, time_size, _) = x.size()

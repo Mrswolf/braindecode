@@ -1,9 +1,14 @@
+# Authors: Robin Schirrmeister <robintibor@gmail.com>
+#
+# License: BSD (3-clause)
+
 import torch
 from torch import nn
 from torch.nn.functional import elu
 
 from .modules import Expression, Ensure4d
 from .functions import squeeze_final_output
+
 
 class Conv2dWithConstraint(nn.Conv2d):
     def __init__(self, *args, max_norm=1, **kwargs):
@@ -18,8 +23,14 @@ class Conv2dWithConstraint(nn.Conv2d):
 
 
 class EEGNetv4(nn.Sequential):
-    """
-    EEGNet v4 model from [EEGNet4]_.
+    """EEGNet v4 model from Lawhern et al 2018.
+
+    See details in [EEGNet4]_.
+
+    Parameters
+    ----------
+    in_chans : int
+        XXX
 
     Notes
     -----
@@ -28,7 +39,6 @@ class EEGNetv4(nn.Sequential):
 
     References
     ----------
-
     .. [EEGNet4] Lawhern, V. J., Solon, A. J., Waytowich, N. R., Gordon,
        S. M., Hung, C. P., & Lance, B. J. (2018).
        EEGNet: A Compact Convolutional Network for EEG-based
@@ -183,8 +193,14 @@ def _transpose_1_0(x):
 
 
 class EEGNetv1(nn.Sequential):
-    """
-    EEGNet model from [EEGNet]_.
+    """EEGNet model from Lawhern et al. 2016.
+
+    See details in [EEGNet]_.
+
+    Parameters
+    ----------
+    in_chans : int
+        XXX
 
     Notes
     -----
@@ -193,7 +209,6 @@ class EEGNetv1(nn.Sequential):
 
     References
     ----------
-
     .. [EEGNet] Lawhern, V. J., Solon, A. J., Waytowich, N. R., Gordon,
        S. M., Hung, C. P., & Lance, B. J. (2016).
        EEGNet: A Compact Convolutional Network for EEG-based
@@ -290,8 +305,8 @@ class EEGNetv1(nn.Sequential):
 
         out = self(
             torch.ones(
-                    (1, self.in_chans, self.input_window_samples, 1),
-                    dtype=torch.float32,
+                (1, self.in_chans, self.input_window_samples, 1),
+                dtype=torch.float32,
             )
         )
         n_out_virtual_chans = out.cpu().data.numpy().shape[2]
@@ -317,6 +332,7 @@ class EEGNetv1(nn.Sequential):
         )
         self.add_module("squeeze", Expression(squeeze_final_output))
         _glorot_weight_zero_bias(self)
+
 
 def _glorot_weight_zero_bias(model):
     """Initalize parameters of all modules by initializing weights with

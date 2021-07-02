@@ -12,11 +12,11 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from braindecode.samplers import RecordingSampler
+from braindecode.samplers import RecordingSampler, SequenceSampler
 from braindecode.samplers.ssl import RelativePositioningSampler
 from braindecode.datasets import BaseDataset, BaseConcatDataset
 from braindecode.datasets.moabb import fetch_data_with_moabb
-from braindecode.datautil.windowers import create_fixed_length_windows
+from braindecode.preprocessing.windowers import create_fixed_length_windows
 
 
 @pytest.fixture(scope='module')
@@ -90,8 +90,8 @@ def test_relative_positioning_sampler(windows_ds, same_rec_neg):
         assert all(pairs_df.loc[pairs_df['y'] == 0, 'diff'] >= tau_neg)
         assert all(pairs_df['same_rec'] == same_rec_neg)
     else:
-        assert all(pairs_df.loc[pairs_df['y'] == 0, 'same_rec'] == False)
-        assert all(pairs_df.loc[pairs_df['y'] == 1, 'same_rec'] == True)
+        assert all(pairs_df.loc[pairs_df['y'] == 0, 'same_rec'] == False)  # noqa: E712
+        assert all(pairs_df.loc[pairs_df['y'] == 1, 'same_rec'] == True)  # noqa: E712
     assert abs(np.diff(pairs_df['y'].value_counts())) < 20
 
 
@@ -111,3 +111,23 @@ def test_relative_positioning_sampler_presample(windows_ds):
     pairs2 = [pair for pair in sampler]
     assert np.array_equal(sampler.examples, pairs)
     assert np.array_equal(sampler.examples, pairs2)
+
+
+@pytest.mark.parametrize('n_windows,n_windows_stride',
+                         [[10, 5], [10, 100], [1, 1]])
+def test_sequence_sampler(windows_ds, n_windows, n_windows_stride):
+    sampler = SequenceSampler(
+        windows_ds.get_metadata(), n_windows, n_windows_stride,
+        random_state=31)
+
+    seqs = [seq for seq in sampler]
+
+    seq_lens = [(len(ds) - n_windows) // n_windows_stride + 1
+                for ds in windows_ds.datasets]
+    n_seqs = sum(seq_lens)
+    assert len(seqs) == n_seqs
+    assert len(seqs[0]) == n_windows
+
+    for i in range(seq_lens[0] - 1):
+        np.testing.assert_array_equal(
+            seqs[i][n_windows_stride:], seqs[i + 1][:-n_windows_stride])

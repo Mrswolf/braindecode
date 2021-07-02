@@ -1,8 +1,12 @@
+# Authors: Robin Schirrmeister <robintibor@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from torch import nn
 from torch.nn import init
 
-from ..util import np_to_var
+from ..util import np_to_th
 from .modules import Expression, Ensure4d
 from .functions import (
     safe_log, square, transpose_time_to_spat, squeeze_final_output
@@ -10,7 +14,9 @@ from .functions import (
 
 
 class ShallowFBCSPNet(nn.Sequential):
-    """Shallow ConvNet model from [2]_.
+    """Shallow ConvNet model from Schirrmeister et al 2017.
+
+    Model described in [Schirrmeister2017]_.
 
     Parameters
     ----------
@@ -19,11 +25,13 @@ class ShallowFBCSPNet(nn.Sequential):
 
     References
     ----------
-    .. [2] Schirrmeister, R. T., Springenberg, J. T., Fiederer, L. D. J.,
-       Glasstetter, M., Eggensperger, K., Tangermann, M., Hutter, F. & Ball, T. (2017).
+    .. [Schirrmeister2017] Schirrmeister, R. T., Springenberg, J. T., Fiederer,
+       L. D. J., Glasstetter, M., Eggensperger, K., Tangermann, M., Hutter, F.
+       & Ball, T. (2017).
        Deep learning with convolutional neural networks for EEG decoding and
        visualization.
-       Human Brain Mapping , Aug. 2017. Online: http://dx.doi.org/10.1002/hbm.23730
+       Human Brain Mapping , Aug. 2017.
+       Online: http://dx.doi.org/10.1002/hbm.23730
     """
 
     def __init__(
@@ -121,7 +129,7 @@ class ShallowFBCSPNet(nn.Sequential):
         self.eval()
         if self.final_conv_length == "auto":
             out = self(
-                np_to_var(
+                np_to_th(
                     np.ones(
                         (1, self.in_chans, self.input_window_samples, 1),
                         dtype=np.float32,

@@ -1,4 +1,4 @@
-# Authors: Robin Tibor Schirrmeister
+# Authors: Robin Tibor Schirrmeister <robintibor@gmail.com>
 #          Tonio Ball
 #
 # License: BSD-3
@@ -11,13 +11,19 @@ from torch.nn import init
 from torch.nn.functional import elu
 
 from .functions import transpose_time_to_spat, squeeze_final_output
-from ..util import np_to_var
 from .modules import Expression, AvgPool2dWithConv, Ensure4d
 
 
 class EEGResNet(nn.Sequential):
-    """
-    Residual Network for EEG.
+    """Residual Network for EEG.
+
+    XXX missing reference
+
+    Parameters
+    ----------
+    in_chans : int
+        XXX
+
     """
     def __init__(self,
                  in_chans,
@@ -147,14 +153,12 @@ class EEGResNet(nn.Sequential):
 
         self.eval()
         if self.final_pool_length == 'auto':
-            out = self(np_to_var(np.ones(
-                (1, self.in_chans, self.input_window_samples, 1),
-                dtype=np.float32)))
-            n_out_time = out.cpu().data.numpy().shape[2]
-            self.final_pool_length = n_out_time
-        self.add_module('mean_pool', AvgPool2dWithConv(
-            (self.final_pool_length, 1), (1, 1), dilation=(int(cur_dilation[0]),
-                                                           int(cur_dilation[1]))))
+            self.add_module('mean_pool', nn.AdaptiveAvgPool2d((1, 1)))
+        else:
+            pool_dilation = int(cur_dilation[0]), int(cur_dilation[1])
+            self.add_module('mean_pool', AvgPool2dWithConv(
+                (self.final_pool_length, 1), (1, 1),
+                dilation=pool_dilation))
         self.add_module('conv_classifier',
                         nn.Conv2d(n_cur_filters, self.n_classes,
                                   (1, 1), bias=True))
@@ -225,8 +229,7 @@ class _ResidualBlock(nn.Module):
         stack_2 = self.bn2(self.conv_2(stack_1))  # next nonlin after sum
         if self.n_pad_chans != 0:
             zeros_for_padding = torch.autograd.Variable(
-                torch.zeros(x.size()[0], self.n_pad_chans // 2,
-                         x.size()[2], x.size()[3]))
+                torch.zeros(x.size()[0], self.n_pad_chans // 2, x.size()[2], x.size()[3]))
             if x.is_cuda:
                 zeros_for_padding = zeros_for_padding.cuda()
             x = torch.cat((zeros_for_padding, x, zeros_for_padding), dim=1)

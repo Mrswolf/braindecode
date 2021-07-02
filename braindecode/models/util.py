@@ -1,3 +1,7 @@
+# Authors: Robin Schirrmeister <robintibor@gmail.com>
+#
+# License: BSD (3-clause)
+
 import torch
 import numpy as np
 
@@ -15,7 +19,7 @@ def to_dense_prediction_model(model, axis=(2, 3)):
     axis: int or (int,int)
         Axis to transform (in terms of intermediate output axes)
         can either be 2, 3, or (2,3).
-    
+
     Notes
     -----
     Does not yet work correctly for average pooling.

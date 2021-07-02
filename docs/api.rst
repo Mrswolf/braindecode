@@ -33,7 +33,7 @@ Classifier
     EEGClassifier
 
 Regressor
-==========
+=========
 
 :py:mod:`braindecode.regressor`:
 
@@ -61,9 +61,12 @@ Models
     HybridNet
     EEGResNet
     TCN
+    SleepStagerChambon2018
+    TIDNet
+    get_output_shape
 
 Training
-==========
+========
 
 :py:mod:`braindecode.training`:
 
@@ -75,10 +78,11 @@ Training
     CroppedLoss
     CroppedTrialEpochScoring
     PostEpochTrainScoring
+    mixup_criterion
     trial_preds_from_window_preds
 
 Datasets
-==========
+========
 
 :py:mod:`braindecode.datasets`:
 
@@ -91,7 +95,34 @@ Datasets
     BaseConcatDataset
     WindowsDataset
     MOABBDataset
+    HGD
+    BNCI2014001
+    TUH
+    TUHAbnormal
+    SleepPhysionet
+    create_from_X_y
+    create_from_mne_raw
+    create_from_mne_epochs
 
+Preprocessing
+=============
+
+:py:mod:`braindecode.preprocessing`:
+
+.. currentmodule:: braindecode.preprocessing
+
+.. autosummary::
+   :toctree: generated/
+
+    create_windows_from_events
+    create_fixed_length_windows
+    exponential_moving_demean
+    exponential_moving_standardize
+    zscore
+    scale
+    filterbank
+    preprocess
+    Preprocessor
 
 Data Utils
 ==========
@@ -103,18 +134,69 @@ Data Utils
 .. autosummary::
    :toctree: generated/
 
-    create_from_X_y
-    create_from_mne_raw
-    create_from_mne_epochs
-    create_fixed_length_windows
-    create_windows_from_events
-    exponential_moving_demean
-    exponential_moving_standardize
-    zscore
-    scale
-    filterbank
     save_concat_dataset
     load_concat_dataset
+
+Samplers
+========
+
+:py:mod:`braindecode.samplers`:
+
+.. currentmodule:: braindecode.samplers
+
+.. autosummary::
+   :toctree: generated/
+
+   RecordingSampler
+   SequenceSampler
+   RelativePositioningSampler
+
+.. _augmentation_api:
+
+Augmentation
+============
+
+:py:mod:`braindecode.augmentation`:
+
+.. currentmodule:: braindecode.augmentation
+
+.. autosummary::
+   :toctree: generated/
+
+    Transform
+    IdentityTransform
+    Compose
+    AugmentedDataLoader
+    TimeReverse
+    SignFlip
+    FTSurrogate
+    ChannelsShuffle
+    ChannelsDropout
+    GaussianNoise
+    ChannelsSymmetry
+    SmoothTimeMask
+    BandstopFilter
+    FrequencyShift
+    SensorsRotation
+    SensorsZRotation
+    SensorsYRotation
+    SensorsXRotation
+    Mixup
+
+    functional.identity
+    functional.time_reverse
+    functional.sign_flip
+    functional.ft_surrogate
+    functional.channels_dropout
+    functional.channels_shuffle
+    functional.channels_permute
+    functional.gaussian_noise
+    functional.smooth_time_mask
+    functional.bandstop_filter
+    functional.frequency_shift
+    functional.sensors_rotation
+    functional.mixup
+
 
 Utils
 =====
@@ -127,3 +209,18 @@ Utils
    :toctree: generated/
 
     set_random_seeds
+
+Visualization
+=============
+
+:py:mod:`braindecode.visualization`:
+
+.. currentmodule:: braindecode.visualization
+
+.. autosummary::
+   :toctree: generated/
+
+    compute_amplitude_gradients
+    plot_confusion_matrix
+
+

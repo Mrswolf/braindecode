@@ -1,4 +1,8 @@
-from skorch.callbacks import ProgressBar, Callback
+# Authors: Robin Schirrmeister <robintibor@gmail.com>
+#
+# License: BSD (3-clause)
+
+from skorch.callbacks import Callback
 import torch
 
 

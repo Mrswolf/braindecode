@@ -77,16 +77,13 @@ dataset = SleepPhysionet(
 # we don't need to apply resampling.
 #
 
-from braindecode.datautil.preprocess import (
-    MNEPreproc, NumpyPreproc, preprocess)
+from braindecode.preprocessing.preprocess import preprocess, Preprocessor
 
 high_cut_hz = 30
 
 preprocessors = [
-    # convert from volt to microvolt, directly modifying the numpy array
-    NumpyPreproc(fn=lambda x: x * 1e6),
-    # bandpass filter
-    MNEPreproc(fn='filter', l_freq=None, h_freq=high_cut_hz, n_jobs=n_jobs),
+    Preprocessor(lambda x: x * 1e6),
+    Preprocessor('filter', l_freq=None, h_freq=high_cut_hz, n_jobs=n_jobs)
 ]
 
 # Transform the data
@@ -108,7 +105,7 @@ preprocess(dataset, preprocessors)
 # that we can reuse them in the sleep staging downstream task later.
 #
 
-from braindecode.datautil.windowers import create_windows_from_events
+from braindecode.preprocessing.windowers import create_windows_from_events
 
 window_size_s = 30
 sfreq = 100
@@ -139,9 +136,9 @@ windows_dataset = create_windows_from_events(
 # We also preprocess the windows by applying channel-wise z-score normalization.
 #
 
-from braindecode.datautil.preprocess import zscore
+from braindecode.preprocessing.preprocess import zscore
 
-preprocess(windows_dataset, [MNEPreproc(fn=zscore)])
+preprocess(windows_dataset, [Preprocessor(zscore)])
 
 
 ######################################################################
@@ -333,8 +330,8 @@ from skorch.callbacks import Checkpoint, EarlyStopping, EpochScoring
 from braindecode import EEGClassifier
 
 lr = 5e-3
-batch_size = 256
-n_epochs = 50
+batch_size = 512
+n_epochs = 25
 num_workers = 0 if n_jobs <= 1 else n_jobs
 
 cp = Checkpoint(dirname='', f_criterion=None, f_optimizer=None, f_history=None)
@@ -391,7 +388,6 @@ os.remove('./params.pt')  # Delete parameters file
 #
 
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import pandas as pd
 
 # Extract loss and balanced accuracy values for plotting from history object

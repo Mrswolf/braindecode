@@ -112,6 +112,7 @@ class CroppedTrialEpochScoring(EpochScoring):
     """
     Class to compute scores for trials from a model that predicts (super)crops.
     """
+    # XXX needs a docstring !!!
 
     def __init__(
         self,
@@ -142,7 +143,7 @@ class CroppedTrialEpochScoring(EpochScoring):
             self.window_inds_ = []
 
     def on_epoch_end(self, net, dataset_train, dataset_valid, **kwargs):
-        assert self.use_caching == True
+        assert self.use_caching
         if not self.crops_to_trials_computed:
             if self.on_train:
                 # Prevent that rng state of torch is changed by
@@ -175,9 +176,14 @@ class CroppedTrialEpochScoring(EpochScoring):
                 pred_results['preds'],
                 pred_results['i_window_in_trials'],
                 pred_results['i_window_stops'])
-            # trial preds is a list
-            # each item is an 2d array classes x time
-            y_preds_per_trial = np.array(trial_preds)
+
+            # Average across the timesteps of each trial so we have per-trial
+            # predictions already, these will be just passed through the forward
+            # method of the classifier/regressor to the skorch scoring function.
+            # trial_preds is a list, each item is a 2d array classes x time
+            y_preds_per_trial = np.array(
+                [np.mean(p, axis=1) for p in trial_preds]
+            )
             # Move into format expected by skorch (list of torch tensors)
             y_preds_per_trial = [torch.tensor(y_preds_per_trial)]
 

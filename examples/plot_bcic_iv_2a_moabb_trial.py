@@ -8,7 +8,6 @@ labels (e.g., Right Hand, Left Hand, etc.).
 
 """
 
-
 ######################################################################
 # Loading and preprocessing the dataset
 # -------------------------------------
@@ -35,7 +34,6 @@ labels (e.g., Right Hand, Left Hand, etc.).
 #
 
 from braindecode.datasets.moabb import MOABBDataset
-import mne
 
 subject_id = 3
 dataset = MOABBDataset(dataset_name="BNCI2014001", subject_ids=[subject_id])
@@ -62,8 +60,8 @@ dataset = MOABBDataset(dataset_name="BNCI2014001", subject_ids=[subject_id])
 #    `torchvision <https://pytorch.org/docs/stable/torchvision/index.html>`__.
 #
 
-from braindecode.datautil.preprocess import exponential_moving_standardize
-from braindecode.datautil.preprocess import MNEPreproc, NumpyPreproc, preprocess
+from braindecode.preprocessing.preprocess import (
+    exponential_moving_standardize, preprocess, Preprocessor)
 
 low_cut_hz = 4.  # low cut frequency for filtering
 high_cut_hz = 38.  # high cut frequency for filtering
@@ -72,15 +70,11 @@ factor_new = 1e-3
 init_block_size = 1000
 
 preprocessors = [
-    # keep only EEG sensors
-    MNEPreproc(fn='pick_types', eeg=True, meg=False, stim=False),
-    # convert from volt to microvolt, directly modifying the numpy array
-    NumpyPreproc(fn=lambda x: x * 1e6),
-    # bandpass filter
-    MNEPreproc(fn='filter', l_freq=low_cut_hz, h_freq=high_cut_hz),
-    # exponential moving standardization
-    NumpyPreproc(fn=exponential_moving_standardize, factor_new=factor_new,
-        init_block_size=init_block_size)
+    Preprocessor('pick_types', eeg=True, meg=False, stim=False),  # Keep EEG sensors
+    Preprocessor(lambda x: x * 1e6),  # Convert from V to uV
+    Preprocessor('filter', l_freq=low_cut_hz, h_freq=high_cut_hz),  # Bandpass filter
+    Preprocessor(exponential_moving_standardize,  # Exponential moving standardization
+                 factor_new=factor_new, init_block_size=init_block_size)
 ]
 
 # Transform the data
@@ -101,8 +95,7 @@ preprocess(dataset, preprocessors)
 # before the trial.
 #
 
-import numpy as np
-from braindecode.datautil.windowers import create_windows_from_events
+from braindecode.preprocessing.windowers import create_windows_from_events
 
 trial_start_offset_seconds = -0.5
 # Extract sampling frequency, check that they are same in all datasets
@@ -167,7 +160,7 @@ seed = 20200220  # random seed to make results reproducible
 # Set random seed to be able to reproduce results
 set_random_seeds(seed=seed, cuda=cuda)
 
-n_classes=4
+n_classes = 4
 # Extract number of chans and time steps from dataset
 n_chans = train_set[0][0].shape[0]
 input_window_samples = train_set[0][0].shape[1]
@@ -182,7 +175,6 @@ model = ShallowFBCSPNet(
 # Send model to GPU
 if cuda:
     model.cuda()
-
 
 
 ######################################################################
@@ -253,6 +245,7 @@ clf.fit(train_set, y=None, epochs=n_epochs)
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import pandas as pd
+
 # Extract loss and accuracy values for plotting from history object
 results_columns = ['train_loss', 'valid_loss', 'train_accuracy', 'valid_accuracy']
 df = pd.DataFrame(clf.history[:, results_columns], columns=results_columns,
@@ -285,3 +278,35 @@ handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle='-', label
 handles.append(Line2D([0], [0], color='black', linewidth=1, linestyle=':', label='Valid'))
 plt.legend(handles, [h.get_label() for h in handles], fontsize=14)
 plt.tight_layout()
+
+
+######################################################################
+# Plot Confusion Matrix
+# ---------------------
+#
+
+
+#######################################################################
+# Generate a confusion matrix as in https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.23730
+#
+
+
+from sklearn.metrics import confusion_matrix
+from braindecode.visualization import plot_confusion_matrix
+
+# generate confusion matrices
+# get the targets
+y_true = valid_set.get_metadata().target
+y_pred = clf.predict(valid_set)
+
+# generating confusion matrix
+confusion_mat = confusion_matrix(y_true, y_pred)
+
+# add class labels
+# label_dict is class_name : str -> i_class : int
+label_dict = valid_set.datasets[0].windows.event_id.items()
+# sort the labels by values (values are integer class labels)
+labels = list(dict(sorted(list(label_dict), key=lambda kv: kv[1])).keys())
+
+# plot the basic conf. matrix
+plot_confusion_matrix(confusion_mat, class_names=labels)

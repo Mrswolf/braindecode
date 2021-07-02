@@ -15,7 +15,7 @@ from skorch.utils import to_numpy, to_tensor
 from torch import optim
 from torch.utils.data import Dataset, DataLoader
 from braindecode.classifier import EEGClassifier
-from braindecode.datautil.xy import create_from_X_y
+from braindecode.datasets.xy import create_from_X_y
 from braindecode.training.scoring import CroppedTrialEpochScoring
 from braindecode.training.scoring import PostEpochTrainScoring
 from braindecode.models import ShallowFBCSPNet
@@ -36,7 +36,7 @@ class MockSkorchNet:
 
     def predict(self, X):
         return np.concatenate(
-            [to_numpy(x.mean(-1).argmax(dim=1)) for x in self.forward_iter(X)], 0
+            [to_numpy(x.argmax(1)) for x in self.forward_iter(X)], 0
         )
 
     def get_iterator(self, X_test, training):
@@ -74,21 +74,21 @@ def test_cropped_trial_epoch_scoring():
     expected_accuracies_cases = [0.25, 0.75]
 
     window_inds = [(
-            torch.tensor([0, 0]),  # i_window_in_trials
-            [None],  # won't be used
-            torch.tensor([4, 4]),  # i_window_stops
-        ),(
-            torch.tensor([0, 0]),  # i_window_in_trials
-            [None],  # won't be used
-            torch.tensor([4, 4]),  # i_window_stops
-        ),]
+        torch.tensor([0, 0]),  # i_window_in_trials
+        [None],  # won't be used
+        torch.tensor([4, 4]),  # i_window_stops
+    ), (
+        torch.tensor([0, 0]),  # i_window_in_trials
+        [None],  # won't be used
+        torch.tensor([4, 4]),  # i_window_stops
+    )]
 
     for predictions, y_true, accuracy in zip(
         predictions_cases, y_true_cases, expected_accuracies_cases
     ):
         dataset_valid = create_from_X_y(
             np.zeros((4, 1, 10)), np.concatenate(y_true),
-            window_size_samples=10, window_stride_samples=4, drop_last_window=False)
+            sfreq=100, window_size_samples=10, window_stride_samples=4, drop_last_window=False)
 
         mock_skorch_net = MockSkorchNet()
         cropped_trial_epoch_scoring = CroppedTrialEpochScoring(
